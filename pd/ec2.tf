@@ -9,7 +9,7 @@ module "ec2_main" {
   private_ip = "10.0.1.10"
   key_name   = "terraform-test-dev"
   eip_name   = "ec2_web_ip"
-  role       = "ssm_role"
+  role       = "pd_ssm_role"
   vpc_security_group_ids = [
     module.web_ec2_sg.security_group_id
   ]
