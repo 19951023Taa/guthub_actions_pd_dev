@@ -26,7 +26,7 @@ module "ec2_main" {
 }
 
 resource "aws_iam_role" "ssm_role" {
-  name = "ssm_role"
+  name = "dev_ssm_role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
