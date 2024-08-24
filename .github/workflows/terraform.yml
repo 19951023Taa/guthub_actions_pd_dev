@@ -10,17 +10,17 @@ on:
   pull_request:
     branches:
       - main
-    paths:
-      - 'dev/**'
-      - 'pd/**'
     types:
       - closed
 
 jobs:
-  terraform-plan-dev:
-    name: Terraform Plan (dev)
+  terraform-plan:
+    name: Terraform Plan
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/feature/*' && contains(github.event.head_commit.message, '[dev]')
+    if: github.event_name == 'push'
+    strategy:
+      matrix:
+        environment: [dev, pd]
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -37,18 +37,21 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-northeast-1
 
-      - name: Terraform Init (dev)
+      - name: Terraform Init
         run: terraform init -reconfigure -backend-config=tfbackend
-        working-directory: ./dev
+        working-directory: ./${{ matrix.environment }}
 
-      - name: Terraform Plan (dev)
-        run: terraform plan -var-file=dev.tfvars
-        working-directory: ./dev
+      - name: Terraform Plan
+        run: terraform plan -var-file=${{ matrix.environment }}.tfvars
+        working-directory: ./${{ matrix.environment }}
 
-  terraform-plan-pd:
-    name: Terraform Plan (pd)
+  terraform-apply:
+    name: Terraform Apply
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/feature/*' && contains(github.event.head_commit.message, '[pd]')
+    if: github.event_name == 'pull_request' && github.event.pull_request.merged == true
+    strategy:
+      matrix:
+        environment: [dev, pd]
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -65,66 +68,10 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-northeast-1
 
-      - name: Terraform Init (pd)
+      - name: Terraform Init
         run: terraform init -reconfigure -backend-config=tfbackend
-        working-directory: ./pd
+        working-directory: ./${{ matrix.environment }}
 
-      - name: Terraform Plan (pd)
-        run: terraform plan -var-file=pd.tfvars
-        working-directory: ./pd
-
-  terraform-apply-dev:
-    name: Terraform Apply (dev)
-    runs-on: ubuntu-latest
-    if: github.event.pull_request.merged == true && contains(github.event.pull_request.head.ref, '[dev]')
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: 1.9.1
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-northeast-1
-
-      - name: Terraform Init (dev)
-        run: terraform init -reconfigure -backend-config=tfbackend
-        working-directory: ./dev
-
-      - name: Terraform Apply (dev)
-        run: terraform apply -var-file=dev.tfvars -auto-approve
-        working-directory: ./dev
-
-  terraform-apply-pd:
-    name: Terraform Apply (pd)
-    runs-on: ubuntu-latest
-    if: github.event.pull_request.merged == true && contains(github.event.pull_request.head.ref, '[pd]')
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: 1.9.1
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-northeast-1
-
-      - name: Terraform Init (pd)
-        run: terraform init -reconfigure -backend-config=tfbackend
-        working-directory: ./pd
-
-      - name: Terraform Apply (pd)
-        run: terraform apply -var-file=pd.tfvars -auto-approve
-        working-directory: ./pd
+      - name: Terraform Apply
+        run: terraform apply -var-file=${{ matrix.environment }}.tfvars -auto-approve
+        working-directory: ./${{ matrix.environment }}
